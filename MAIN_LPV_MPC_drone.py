@@ -31,8 +31,6 @@ import matplotlib
 print("Matplotlib " + matplotlib.__version__)
 import support_files_drone as sfd
 
-matplotlib.use("MacOSX")
-
 class DroneLPV:
     def simulate(self, controller):
         # Create an object for the support functions.
@@ -142,7 +140,6 @@ class DroneLPV:
 
                 # Keep track of your inputs
                 UTotal=np.concatenate((UTotal,np.array([[U1,U2,U3,U4]])),axis=0)
-                # print(UTotal)
 
                 # Compute the new omegas based on the new U-s
                 U1C=U1/ct
@@ -197,16 +194,13 @@ class DroneLPV:
                 omega_total=omega1-omega2+omega3-omega4
                 # Compute new states in the open loop system (interval: Ts/10)
                 states,states_ani,U_ani=support.open_loop_new_states(states,omega_total,U1,U2,U3,U4)
-                # print(states)
-                # print(statesTotal)
                 statesTotal=np.concatenate((statesTotal,[states]),axis=0)
-                # print(statesTotal)
                 statesTotal_ani=np.concatenate((statesTotal_ani,states_ani),axis=0)
                 UTotal_ani=np.concatenate((UTotal_ani,U_ani),axis=0)
 
         # === Animação ===
 
-        anim = DroneAnimator(
+        animator = DroneAnimator(
             X_ref,
             X_dot_ref,
             Y_ref,
@@ -216,8 +210,8 @@ class DroneLPV:
             t
         )
 
-        anim.play(statesTotal_ani, UTotal_ani, interval=5)
-        anim.plot_summary(
+        animator.play(statesTotal_ani, UTotal_ani, interval=5)
+        animator.plot_summary(
             t=t,
             innerDyn_length=innerDyn_length,
             ref_angles_total=ref_angles_total,
