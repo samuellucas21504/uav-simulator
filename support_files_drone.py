@@ -20,7 +20,6 @@ or anything else it was used for fails - the author is NOT RESPONSIBLE!
 '''
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 class SupportFilesDrone:
     ''' The following functions interact with the main file'''
