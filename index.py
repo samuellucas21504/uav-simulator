@@ -5,4 +5,4 @@ from controllers.mpc_controller import MpcController
 
 if __name__ == "__main__":
     lpv = DroneLPV()
-    lpv.plot(PidController())
+    lpv.simulate(PidController())

@@ -65,7 +65,6 @@ class SupportFilesDrone:
         height_i=5
         height_f=25
 
-        pos_x_y=0 # Default: 0. Make positive x and y longer for visual purposes (1-Yes, 0-No). It does not affect the dynamics of the UAV.
         sub_loop=5 # for animation purposes
         sim_version=1 # Can only be 1 or 2 - depending on that, it will show you different graphs in the animation
 
@@ -90,7 +89,7 @@ class SupportFilesDrone:
         self.constants={'Ix':Ix, 'Iy':Iy, 'Iz':Iz, 'm':m, 'g':g, 'Jtp':Jtp, 'Ts':Ts,\
             'Q':Q, 'S':S, 'R':R, 'ct':ct, 'cq':cq, 'l':l, 'controlled_states':controlled_states,\
             'hz':hz, 'innerDyn_length':innerDyn_length, 'px':px, 'py':py, 'pz':pz,\
-            'r':r, 'f':f, 'height_i':height_i, 'height_f':height_f, 'pos_x_y':pos_x_y,\
+            'r':r, 'f':f, 'height_i':height_i, 'height_f':height_f,\
             'sub_loop':sub_loop, 'sim_version':sim_version, 'drag_switch':drag_switch,\
             'C_D_u':C_D_u, 'C_D_v':C_D_v, 'C_D_w':C_D_w, 'A_u':A_u, 'A_v':A_v, 'A_w':A_w,\
             'rho':rho, 'trajectory':trajectory, 'no_plots':no_plots}

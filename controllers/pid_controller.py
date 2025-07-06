@@ -3,7 +3,7 @@ import numpy as np
 class PidController:
     # attitude pid
     def control(self, state, ref, dt):
-        WEIGHT = 0.1
+        WEIGHT = 0.2
         KP = WEIGHT
         KI = WEIGHT / 10
         KD = WEIGHT / 4
