@@ -28,6 +28,7 @@ class SupportFilesDrone:
         ''' Load the constants that do not change'''
 
         # Constants (Astec Hummingbird)
+        # https://robotics.caltech.edu/~ndutoit/wiki/images/7/70/AscTec_AutoPilot_manual_v1.0_small.pdf
         Ix = 0.0034 # kg*m^2
         Iy = 0.0034 # kg*m^2
         Iz  = 0.006 # kg*m^2

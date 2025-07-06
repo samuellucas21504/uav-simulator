@@ -20,6 +20,8 @@ or anything else it was used for fails - the author is NOT RESPONSIBLE!
 '''
 import platform
 
+from controllers.mpc_controller import MpcController
+from controllers.pid_controller import PidController
 from view.DroneAnimator import DroneAnimator
 
 print("Python " + platform.python_version())
@@ -72,9 +74,9 @@ class DroneLPV:
 
         # Initial drone propeller states
         omega1=110*np.pi/3 # rad/s at t=-Ts s (Ts seconds before NOW)
-        omega2=110*np.pi/3 # rad/s at t=-Ts s (Ts seconds before NOW)
+        omega2=90*np.pi/3 # rad/s at t=-Ts s (Ts seconds before NOW)
         omega3=110*np.pi/3 # rad/s at t=-Ts s (Ts seconds before NOW)
-        omega4=110*np.pi/3 # rad/s at t=-Ts s (Ts seconds before NOW)
+        omega4=90*np.pi/3 # rad/s at t=-Ts s (Ts seconds before NOW)
         omega_total=omega1-omega2+omega3-omega4
 
         ct=constants['ct']
@@ -117,39 +119,26 @@ class DroneLPV:
                 k=k+1
 
             # Initiate the controller - simulation loops
-            hz=support.constants['hz'] # horizon period
-            k=0 # for reading reference signals
             # statesTotal2=np.concatenate((statesTotal2,[states]),axis=0)
             for i in range(0,innerDyn_length):
-                # Generate the discrete state space matrices
-                Ad,Bd,Cd,Dd,x_dot,y_dot,z_dot,phi,phi_dot,theta,theta_dot,psi,psi_dot=support.LPV_cont_discrete(states, omega_total)
-                x_dot=np.transpose([x_dot])
-                y_dot=np.transpose([y_dot])
-                z_dot=np.transpose([z_dot])
-                temp_velocityXYZ=np.concatenate(([[x_dot],[y_dot],[z_dot]]),axis=1)
-                velocityXYZ_total=np.concatenate((velocityXYZ_total,temp_velocityXYZ),axis=0)
-                # Generate the augmented current state and the reference vector
-                x_aug_t=np.transpose([np.concatenate(([phi,phi_dot,theta,theta_dot,psi,psi_dot],[U2,U3,U4]),axis=0)])
-                # Ts=0.1 s
-                # From the refSignals vector, only extract the reference values from your [current sample (NOW) + Ts] to [NOW+horizon period (hz)]
-                # Example: t_now is 3 seconds, hz = 15 samples, so from refSignals vectors, you move the elements to vector r:
-                # r=[Phi_ref_3.1, Theta_ref_3.1, Psi_ref_3.1, Phi_ref_3.2, ... , Phi_ref_4.5, Theta_ref_4.5, Psi_ref_4.5]
-                # With each loop, it all shifts by 0.1 second because Ts=0.1 s
-                k=k+controlled_states
-                if k+controlled_states*hz<=len(refSignals):
-                    r=refSignals[k:k+controlled_states*hz]
+                lpv_cont_discrete = support.LPV_cont_discrete( states, omega_total )
+                Ad, Bd, Cd, Dd, x_dot, y_dot, z_dot, phi, phi_dot, theta, theta_dot, psi, psi_dot = lpv_cont_discrete
+                x_dot = np.transpose([x_dot])
+                y_dot = np.transpose([y_dot])
+                z_dot = np.transpose([z_dot])
+                temp_velocityXYZ = np.concatenate(([[x_dot], [y_dot], [z_dot]]), axis=1)
+                velocityXYZ_total = np.concatenate((velocityXYZ_total, temp_velocityXYZ), axis=0)
+
+                if controller == 'pid':
+                    U2, U3, U4 = PidController().control(
+                        states,
+                        refSignals,
+                        Ts
+                    )
+                elif controller == 'mpc':
+                    U2, U3, U4 = MpcController(U2, U3, U4).control(states, omega_total, refSignals, lpv_cont_discrete)
                 else:
-                    r=refSignals[k:len(refSignals)]
-                    hz=hz-1
-
-                # Generate the compact simplification matrices for the cost function
-                Hdb,Fdbt,Cdb,Adc=support.mpc_simplification(Ad,Bd,Cd,Dd,hz)
-
-                U2, U3, U4 = controller.control(
-                    states,
-                    (Phi_ref[i + 1][0], Theta_ref[i + 1][0], Psi_ref[i + 1][0]),
-                    Ts
-                )
+                    raise NotImplementedError('Controlador não implementado')
 
                 # Keep track of your inputs
                 UTotal=np.concatenate((UTotal,np.array([[U1,U2,U3,U4]])),axis=0)
@@ -232,7 +221,7 @@ class DroneLPV:
             t=t,
             innerDyn_length=innerDyn_length,
             ref_angles_total=ref_angles_total,
-            UTotal=UTotal_ani,
+            UTotal=UTotal,
             omegas_bundle=omegas_bundle,
             velocityXYZ_total=velocityXYZ_total,
             statesTotal_ani=statesTotal_ani,

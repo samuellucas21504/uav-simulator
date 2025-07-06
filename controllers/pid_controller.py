@@ -1,7 +1,6 @@
 import numpy as np
 
 class PidController:
-    # attitude pid
     def control(self, state, ref, dt):
         WEIGHT = 0.2
         KP = WEIGHT
@@ -14,10 +13,10 @@ class PidController:
 
         _int_err = np.zeros(3)
 
-        phi, theta, psi = state[9], state[10], state[11]
+        roll, pitch, yaw = state[9], state[10], state[11]
         p, q, r = state[3], state[4], state[5]
 
-        e     = np.array([ref[0] - phi,  ref[1] - theta,  ref[2] - psi])
+        e     = np.array([ref[0] - roll,  ref[1] - pitch,  ref[2] - yaw])
         dedt  = -np.array([p, q, r])
         _int_err += e * dt
         _int_err = np.clip(_int_err, -0.5, 0.5)
