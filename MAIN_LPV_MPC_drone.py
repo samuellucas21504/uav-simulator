@@ -91,6 +91,7 @@ class DroneLPV:
 
         ########## Start the global controller #################################
 
+        pid = PidController()
         for i_global in range(0,plotl-1):
             # Implement the position controller (state feedback linearization)
             phi_ref, theta_ref, U1=support.pos_controller(X_ref[i_global+1],X_dot_ref[i_global+1],X_dot_dot_ref[i_global+1],Y_ref[i_global+1],Y_dot_ref[i_global+1],Y_dot_dot_ref[i_global+1],Z_ref[i_global+1],Z_dot_ref[i_global+1],Z_dot_dot_ref[i_global+1],psi_ref[i_global+1],states)
@@ -128,7 +129,7 @@ class DroneLPV:
                 velocityXYZ_total = np.concatenate((velocityXYZ_total, temp_velocityXYZ), axis=0)
 
                 if controller == 'pid':
-                    U2, U3, U4 = PidController().control(
+                    U2, U3, U4 = pid.control(
                         states,
                         refSignals,
                         Ts
