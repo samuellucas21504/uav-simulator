@@ -39,30 +39,14 @@ onde:
 
 ---
 
-### 1. Equações de força (segunda lei de Newton)
-
-$$
-\begin{aligned}
-\dot u &=  v r - w q + g\sin\theta - \dfrac{F_{d,u}}{m} \\[3pt]
-\dot v &=  w p - u r - g\cos\theta\sin\phi - \dfrac{F_{d,v}}{m} \\[3pt]
-\dot w &=  u q - v p - g\cos\theta\cos\phi + \dfrac{U_1}{m} - \dfrac{F_{d,w}}{m}
-\end{aligned}
-$$
+### 1. Força
 
 * `U1` – empuxo total (N)
 * `F_d,·` – arrasto opcional (ativado por `drag_switch`)
 
 ---
 
-### 2. Equações de torque (dinâmica rígida + efeito giroscópico)
-
-$$
-\begin{aligned}
-\dot p &= \frac{I_y - I_z}{I_x}\,q r \;-\; \frac{J_{tp}}{I_x}\,q\,\omega_{\text{tot}} + \frac{U_2}{I_x} \\[4pt]
-\dot q &= \frac{I_z - I_x}{I_y}\,p r \;+\; \frac{J_{tp}}{I_y}\,p\,\omega_{\text{tot}} + \frac{U_3}{I_y} \\[4pt]
-\dot r &= \frac{I_x - I_y}{I_z}\,p q \;+\; \frac{U_4}{I_z}
-\end{aligned}
-$$
+### 2. Torque
 
 * `U2 U3 U4` – torques roll, pitch, yaw (N·m)
 * `J_tp` – inércia das hélices
@@ -71,15 +55,6 @@ $$
 ---
 
 ### 3. Cinemática (corpo → inercial)
-
-$$
-\dot{\mathbf{r}}_{\text{world}} = R(\phi,\theta,\psi)\,[u\,v\,w]^{\!\top}
-$$
-
-$$
-\begin{bmatrix}\dot\phi\\\dot\theta\\\dot\psi\end{bmatrix}
-= T(\phi,\theta)\,[p\,q\,r]^{\!\top}
-$$
 
 * `R` – matriz de rotação 3-2-1
 * `T` – matriz de transformação angular
@@ -131,15 +106,6 @@ $$
 | Inércia hélices `J_tp` | 1.30 × 10⁻⁶ kg·m²                       |
 
 ---
-
-### Resumo
-
-A planta combina:
-
-1. **Equações de força e torque** não lineares.
-2. **Transformações cinemáticas** para posição e orientação.
-3. **Integração RK4** a cada 0,1 s.
-4. **Modelo LPV** (linear-paramétrico) para o MPC.
 
 ## Funcionamento do PID de atitude
 
