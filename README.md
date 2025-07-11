@@ -1,101 +1,3 @@
-## Technical Report – LPV Quadrotor Simulation and Control
-
-> **Based on the original code by Mark Misin**
-> This project began with the code by Mark Misin presented in the Udemy course
-> `Applied Control Systems 3: UAV drone (3D Dynamics & control)`.
-> It models the Astec Hummingbird quadrotor with an **LPV-MPC** controller (license
-> preserved in the source files).
-> The present version adds **dependency injection** for controllers, an **attitude
-> PID**, and a new animation class.
-> It was developed by **Samuel Lucas** for the course *Quadrotor UAV: Dynamics and
-> Control*.
-
----
-
-### 1.  Overall control-system structure
-
-![planta.png](docs/planta.png)
-
-* **Outer loop** – linearises position, computes total thrust `U1`, and
-  reference angles **φ** and **θ**.
-* **Inner loop** – controls attitude with MPC *or* PID, updating
-  `U2 U3 U4`.
-* **Plant** – discrete LPV model (`LPV_cont_discrete`) + RK4 integration.
-
----
-
-### 2.  Key files and their roles
-
-| File                                | Purpose                                                                                                                                                                                                                             |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`support_files_drone.py`**        | • Defines **constants dict** (mass, inertias, CT/CQ, MPC weights, …)<br>• Generators: trajectory, position controller (`pos_controller`)<br>• Discrete LPV model (`LPV_cont_discrete`)<br>• RK4 integrator (`open_loop_new_states`) |
-| **`controllers/pid_controller.py`** | Implements **`PidController`** (diagonal gains, anti-wind-up).                                                                                                                                                                      |
-| **`controllers/mpc_controller.py`** | Wraps the original MPC algorithm in a class with the same interface.                                                                                                                                                                |
-| **`MAIN_LPV_MPC_drone.py`**         | **`DroneLPV`** class – simulation loop:<br>  1. generate references<br>  2. pick controller (`"pid"` or `"mpc"`) via string<br>  3. log states/inputs.                                                                              |
-| **`view/DroneAnimator.py`**         | New **`DroneAnimator`** class: 3-D animation, sub-plots, and “summary plots”.                                                                                                                                                       |
-| **`index.py`**                      | Minimal script: creates `DroneLPV` and runs `simulate('pid')`.                                                                                                                                                                      |
-| **`utils/mpl_backend.py`**          | Checks if the OS is macOS – if so, rendering is done on the OS backend; otherwise matplotlib chooses automatically.                                                                                                                 |
-
----
-
-### 3.  Implemented control concepts
-
-| Concept                            | Description / Implementation                                                                                                                                    |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **LPV (Linear Parameter-Varying)** | Linearised about the current state; parameters vary with ω<sub>total</sub>, φ, θ, ψ. Euler discretisation: `Ad = I + Ts·A`.                                     |
-| **MPC**                            | Horizon `hz = 4`; compact matrices `Hdb, Fdbt` built in `mpc_simplification`. Solver uses analytic inverse (`np.linalg.inv(Hdb)`) for speed.                    |
-| **Attitude PID**                   | Proportional gains equal in roll and pitch, doubled in yaw; derivative on `p,q,r`; integral clamped (±0.5 rad) to prevent wind-up. Runs every sub-step (40 Hz). |
-| **Position control**               | Feedback-linearisation: computes `U1 = (v̇z+g)m/∘` and converts position errors into **φ**, **θ** references via poles `p_x, p_y, p_z`.                         |
-| **Runge–Kutta 4**                  | Integrates forces, torques, and drag (`drag_switch`) inside `open_loop_new_states`, subdividing `Ts` into `sub_loop = 5` for smoother animation.                |
-
----
-
-### 4.  Main changes and enhancements
-
-| Area                     | Enhancement                                                                                                      |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| **Dependency injection** | `DroneLPV.simulate(controller: str)` dynamically selects **PID** or **MPC** without touching plant logic.        |
-| **Controller classes**   | `PidController` and `MpcController` both expose `control(state, …)`, easing A/B testing.                         |
-| **Velocity logging**     | Vector `velocityXYZ_total` now stored at each sub-step for Ẋ Ẏ Ż plots.                                       |
-| **Animation API**        | `DroneAnimator` gathers all graphics; supports `play()` (real time) and `plot_summary()` (final plots).          |
-| **Directory layout**     | `controllers/`, `view/` folders separate logic, visualisation, and entry point.                                  |
-| **Documentation**        | This `.md` report and inline comments clarify the original source (Mark Misin) and new features (PID, refactor). |
-
----
-
-### 5.  How to run
-
-```bash
-pip install -r requirements.txt
-python index.py          # uses PID
-# or
-python - <<'PY'
-from MAIN_LPV_MPC_drone import DroneLPV
-lpv = DroneLPV()
-lpv.simulate('mpc')
-PY
-```
-
-The simulation opens a 3-D animation; once you close it, static plots generated by
-`plot_summary()` appear.
-
----
-
-### 6.  Final remarks
-
-* **Credits** – The original model, equations, and MPC algorithm belong to
-  **Mark Misin**; his license and copyright
-  notice have been retained.
-* **Current contribution** – Adds the **attitude PID**, dependency injection,
-  refactored animation, modular structure, and this report.
-
----
-
-© 2025 – Study project extending Mark Misin’s code, developed by
-Samuel Lucas for the course *Quadrotor UAV: Dynamics and Control*.
-
----
-
 ## Relatório técnico – Simulação e Controle de um Quadricóptero LPV
 
 > **Baseado no código original de Mark Misin**
@@ -110,7 +12,7 @@ Samuel Lucas for the course *Quadrotor UAV: Dynamics and Control*.
 
 ---
 
-### 1 . Estrutura geral do sistema de controle
+### Estrutura geral do sistema de controle
 
 ![planta.png](docs/planta.png)
 
@@ -118,65 +20,145 @@ Samuel Lucas for the course *Quadrotor UAV: Dynamics and Control*.
 * **Inner loop**: controla atitude com MPC *ou* PID, atualizando `U2 U3 U4`.
 * **Planta**: modelo LPV discreto (`LPV_cont_discrete`) + integração RK4.
 
----
+## Dinâmica da planta – modelo do quadricóptero
 
-### 2 . Principais arquivos e papéis
+A planta simula **12 estados** no vetor
 
-| Arquivo                             | Função                                                                                                                                                                                                                                |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`support_files_drone.py`**        | • Define **constant dict** (massa, inercias, CT/CQ, pesos MPC etc.)<br>• Geradores: trajetória, controlador de posição (`pos_controller`)<br>• Modelo LPV discreto (`LPV_cont_discrete`)<br>• Integração RK4 (`open_loop_new_states`) |
-| **`controllers/pid_controller.py`** | Implementa **`PidController`** (ganhos diagonalizados, anti-wind-up).                                                                                                                                                                 |
-| **`controllers/mpc_controller.py`** | Envolve o algoritmo MPC original numa classe com a mesma interface.                                                                                                                                                                   |
-| **`MAIN_LPV_MPC_drone.py`**         | Classe **`DroneLPV`** – laço de simulação:<br>  1. gera referências<br>  2. escolhe controlador (`"pid"` ou `"mpc"`) via string<br>  3. cria log de estados/entradas.                                                                 |
-| **`view/DroneAnimator.py`**         | Nova classe **`DroneAnimator`**: animação 3-D, sub-plots e “summary plots”.                                                                                                                                                           |
-| **`index.py`**                      | Script mínimo: cria `DroneLPV` e roda `simulate('pid')`.                                                                                                                                                                              |
-| **`utils/mpl_backend.py`**          | Faz a checagem se o sistema operacional é macOS; se for, a renderização é feita em cima do SO, caso contrário, o matplotlib escolhe a plataforma.                                                                                     |
-
----
-
-### 3 . Conceitos de controle implementados
-
-| Conceito                           | Descrição / Implementação                                                                                                                                               |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **LPV (Linear Parameter-Varying)** | Modelo linearizado em torno do estado atual; parâmetros variam com ω<sub>total</sub>, φ, θ e ψ. Discretização por Euler: `Ad = I + Ts·A`.                               |
-| **MPC**                            | Horizonte `hz = 4`; matrizes compactas `Hdb, Fdbt` montadas em `mpc_simplification`. O solver usa inversa analítica (`np.linalg.inv(Hdb)`) para velocidade.             |
-| **PID de atitude**                 | Ganhos proporcionais iguais em roll e pitch, 2× em yaw; derivada direta de `p,q,r`; integral saturada (±0,5 rad) para evitar wind-up. Executa a cada sub-passo (40 Hz). |
-| **Controle de posição**            | Feedback-linearization: calcula `U1 = (v̇z+g)m/∘` e converte erros de posição para referências de **φ** e **θ** via polos `p_x, p_y, p_z`.                              |
-| **Runge–Kutta 4**                  | Integra forças, torques e arrasto (`drag_switch`) dentro de `open_loop_new_states`, subdividindo `Ts` em `sub_loop = 5` para suavizar a animação.                       |
-
----
-
-### 4 . Alterações e aprimoramentos realizados
-
-| Tema                          | Alteração                                                                                                                  |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Injeção de dependência**    | `DroneLPV.simulate(controller: str)` escolhe dinamicamente **PID** ou **MPC** sem alterar lógica da planta.                |
-| **Classes de controlador**    | `PidController` e `MpcController` obedecem ambos ao método `control(state, …)`, facilitando testes A/B.                    |
-| **Registro de velocidades**   | Vetor `velocityXYZ_total` agora armazenado a cada sub-passo para plot de Ẋ Ẏ Ż.                                         |
-| **Animation API**             | `DroneAnimator` reúne todo o código gráfico; suporta `play()` (tempo real) e `plot_summary()` (plots finais).              |
-| **Arquitetura de diretórios** | Pastas `controllers/`, `view/`, separando lógica, visualização e *entry point*.                                            |
-| **Documentação**              | Este relatório `.md` e comentários nos arquivos esclarecem origem (Mark Misin) e novas funcionalidades (PID, refatoração). |
-
----
-
-### 5 . Como rodar
-
-```bash
-pip install -r requirements.txt
-python index.py          # usa PID
-# ou
-python - <<'PY'
-from MAIN_LPV_MPC_drone import DroneLPV
-lpv = DroneLPV()
-lpv.simulate('mpc')
-PY
+```
+[u v w  p q r  x y z  phi theta psi]
 ```
 
-A simulação abre a animação 3-D; ao fechar, surgem os gráficos estáticos gerados por `plot_summary()`.
+onde:
+
+| Símbolo         | Significado                                   | Unidade |
+| --------------- | --------------------------------------------- | ------- |
+| `u v w`         | Velocidades lineares no eixo corpo **X Y Z**  | m / s   |
+| `p q r`         | Velocidades angulares no eixo corpo **X Y Z** | rad / s |
+| `x y z`         | Posição inercial                              | m       |
+| `phi theta psi` | Ângulos roll, pitch, yaw                      | rad     |
 
 ---
 
-### 6 . Observações finais
+### 1. Equações de força (segunda lei de Newton)
+
+$$
+\begin{aligned}
+\dot u &=  v r - w q + g\sin\theta - \dfrac{F_{d,u}}{m} \\[3pt]
+\dot v &=  w p - u r - g\cos\theta\sin\phi - \dfrac{F_{d,v}}{m} \\[3pt]
+\dot w &=  u q - v p - g\cos\theta\cos\phi + \dfrac{U_1}{m} - \dfrac{F_{d,w}}{m}
+\end{aligned}
+$$
+
+* `U1` – empuxo total (N)
+* `F_d,·` – arrasto opcional (ativado por `drag_switch`)
+
+---
+
+### 2. Equações de torque (dinâmica rígida + efeito giroscópico)
+
+$$
+\begin{aligned}
+\dot p &= \frac{I_y - I_z}{I_x}\,q r \;-\; \frac{J_{tp}}{I_x}\,q\,\omega_{\text{tot}} + \frac{U_2}{I_x} \\[4pt]
+\dot q &= \frac{I_z - I_x}{I_y}\,p r \;+\; \frac{J_{tp}}{I_y}\,p\,\omega_{\text{tot}} + \frac{U_3}{I_y} \\[4pt]
+\dot r &= \frac{I_x - I_y}{I_z}\,p q \;+\; \frac{U_4}{I_z}
+\end{aligned}
+$$
+
+* `U2 U3 U4` – torques roll, pitch, yaw (N·m)
+* `J_tp` – inércia das hélices
+* `omega_tot = ω₁ − ω₂ + ω₃ − ω₄`
+
+---
+
+### 3. Cinemática (corpo → inercial)
+
+$$
+\dot{\mathbf{r}}_{\text{world}} = R(\phi,\theta,\psi)\,[u\,v\,w]^{\!\top}
+$$
+
+$$
+\begin{bmatrix}\dot\phi\\\dot\theta\\\dot\psi\end{bmatrix}
+= T(\phi,\theta)\,[p\,q\,r]^{\!\top}
+$$
+
+* `R` – matriz de rotação 3-2-1
+* `T` – matriz de transformação angular
+
+---
+
+### 4. Integração numérica
+
+* **Runge–Kutta 4ª ordem** em cada `Ts = 0.1 s`.
+* Subdivisão `sub_loop = 5` → passo interno de 20 ms (suaviza a animação).
+
+---
+
+### 5. Modelo LPV para controle
+
+`LPV_cont_discrete()` lineariza apenas os eixos de atitude:
+
+* Estados locais: `[phi phi̇ theta thetȧ psi psi̇]`
+* Entradas: `[U2 U3 U4]`
+* Matrizes `Ad Bd` dependem de `omega_tot`, `phi̇`, `thetȧ`
+* Discretização por Euler: `Ad = I + Ts·A`
+
+---
+
+### 6. Conversão torques → rotações dos rotores
+
+$$
+\begin{bmatrix}\omega_1^2\\\omega_2^2\\\omega_3^2\\\omega_4^2\end{bmatrix}
+= A_\omega^{-1}\!
+\begin{bmatrix}
+U_1/c_t \\ U_2/(c_t l) \\ U_3/(c_t l) \\ U_4/c_q
+\end{bmatrix}
+$$
+
+`A_ω` é a matriz de mistura que relaciona empuxo/torques a ω² dos quatro motores.
+
+---
+
+### 7. Constantes físicas (Astec Hummingbird)
+
+| Parâmetro              | Valor                                   |
+| ---------------------- | --------------------------------------- |
+| Massa `m`              | 0.698 kg                                |
+| Gravidade `g`          | 9.81 m / s²                             |
+| Inércias `Ix Iy Iz`    | 0.0034 kg·m², 0.0034 kg·m², 0.006 kg·m² |
+| Braço `l`              | 0.171 m                                 |
+| Coef. de empuxo `c_t`  | 7.6 × 10⁻⁸ N·s²                         |
+| Coef. de arrasto `c_q` | 2.7 × 10⁻⁹ N·m·s²                       |
+| Inércia hélices `J_tp` | 1.30 × 10⁻⁶ kg·m²                       |
+
+---
+
+### Resumo
+
+A planta combina:
+
+1. **Equações de força e torque** não lineares.
+2. **Transformações cinemáticas** para posição e orientação.
+3. **Integração RK4** a cada 0,1 s.
+4. **Modelo LPV** (linear-paramétrico) para o MPC.
+
+## Funcionamento do PID de atitude
+
+![docs/formula_pid.png](docs/formula_pid.png)
+
+O **PidController** substitui o MPC na malha interna e é executado **40 Hz** (quatro vezes dentro de cada `Ts = 0,1 s`). A cada sub-passo ele realiza:
+
+| #     | Etapa                         | Detalhes / fórmulas                                                                                                   |
+| ----- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **1** | **Erro de atitude**           | `e = [phi_ref – phi,  theta_ref – theta,  psi_ref – psi]`                                                             |
+| **2** | **Derivada do erro**          | `de_dt = –[p, q, r]`  <br>(as velocidades angulares já são as derivadas dos ângulos)                                  |
+| **3** | **Integral com anti-wind-up** | `int_err += e · dt`  <br>`int_err = clip(int_err, ±0.5 rad)`                                                          |
+| **4** | **Ganhos**                    | Matriz diagonal por eixo  <br>`Kp = diag(KP, KP, 2·KP)`  <br>`Ki = diag(KI, KI, 2·KI)`  <br>`Kd = diag(KD, KD, 2·KD)` |
+| **5** | **Lei de controle**           | $\tau = K_p\,e \;+\; K_i \!\int e \;+\; K_d\,\dot e$ <br>Retorna **(U₂, U₃, U₄)** em N·m                              |
+| **6** | **Aplicação na planta**       | Os torques são convertidos em ω² → ω e passados para `open_loop_new_states()`                                         |
+
+---
+
+### Observações finais
 
 * **Créditos** – O modelo original, equações e algoritmo MPC pertencem a
   **Mark Misin**; a licença e aviso de copyright

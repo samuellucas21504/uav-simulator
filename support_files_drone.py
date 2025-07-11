@@ -42,8 +42,8 @@ class SupportFilesDrone:
         S=np.matrix('20 0 0;0 20 0;0 0 20') # weights for the final horizon period outputs
         R=np.matrix('10 0 0;0 10 0;0 0 10') # weights for inputs
 
-        ct = 7.6184*10**(-8)*(60/(2*np.pi))**2 # N*s^2
-        cq = 2.6839*10**(-9)*(60/(2*np.pi))**2 # N*m*s^2
+        ct = 7.6184*10**(-8)*(60/(2*np.pi))**2 # N*s^2 Coeficiente de empuxo
+        cq = 2.6839*10**(-9)*(60/(2*np.pi))**2 # N*m*s^2 Coeficiente de arrasto
         l = 0.171 # m
 
         controlled_states=3 # Number of attitude outputs: Phi, Theta, Psi
@@ -83,7 +83,7 @@ class SupportFilesDrone:
 
         # Air density
         rho=1.225 # [kg/m^3]
-        trajectory=1 # Choose the trajectory: only from 1-9
+        trajectory=4 # Choose the trajectory: only from 1-9
         no_plots=0 # 0-you will see the plots; 1-you will skip the plots (only animation)
 
         self.constants={'Ix':Ix, 'Iy':Iy, 'Iz':Iz, 'm':m, 'g':g, 'Jtp':Jtp, 'Ts':Ts,\
